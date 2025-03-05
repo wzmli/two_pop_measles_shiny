@@ -40,23 +40,15 @@ seir_stoch = mp_simulator(
   , outputs = outputs
 )
 
-## wrapper for stochastic simulations
-ssfun <- function(x){
-  set.seed(x)
-	dd <- (mp_trajectory(seir_stoch)
-		%>% mutate(NULL
-			, iter = x
-		)
-	)
-}
+stochf <- bind_rows(mp_trajectory_replicate(seir_stoch,n=nsims),.id="iter")
 
 detf <- (mp_trajectory(seir_det)
 	%>% mutate(NULL
-		, iter = 0
+		, iter = "0"
 	)
 )
 
-incdf <- (bind_rows(lapply(1:nsims, ssfun), detf)
+incdf <- (bind_rows(stochf, detf)
 #	|> mutate(VaccineCoverage_red = newparams$vaxprop_red
 #		, VaccineCoverage_blue = newparams$vaxprop_blue
 #		, Iso_blue = newparams$iso_red
@@ -67,7 +59,7 @@ incdf <- (bind_rows(lapply(1:nsims, ssfun), detf)
 
 ## Takes in the simulated stochastic simulations and plot it
 
-alpha <- max(1/nsims,0.05)
+alpha <- max(1/nsims,0.075)
 ## over <- 10
 ## alpha <- something about the number of simulatiosn
 

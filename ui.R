@@ -14,7 +14,7 @@ fluidPage(
 		sidebarPanel(
 		  checkboxInput("det"
 		                ,"Deterministic"
-		                , value = TRUE
+		                , value = FALSE
 		  )
 		  ,
 		  checkboxInput("stoch"
@@ -43,7 +43,7 @@ fluidPage(
 		  )
 		  ,
 		  sliderInput("pref"
-		    ,"Mixing"
+		    ,"Within Group Mixing"
 		    , min = 0
 		    , max = 1
 		    , value=0.99
