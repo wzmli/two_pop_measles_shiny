@@ -175,6 +175,7 @@ print(gg)
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server,options = "launch.browser")
+# shinyApp(ui = ui, server = server,options = "launch.browser")
+shinyApp(ui = ui, server = server)
 
 #shinyApp(ui = ui, server = server,options = list(launch.browser=TRUE))
