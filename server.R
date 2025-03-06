@@ -1,8 +1,10 @@
 library(shiny)
 library(ggplot2) # load ggplot
-theme_set(theme_bw())
+theme_set(theme_bw(base_size=20))
 library(dplyr)
+library(tidyr)
 library(macpan2)
+library(cowplot)
 
 # Define server logic required to draw a histogram
 function(input, output) {
@@ -59,14 +61,17 @@ incdf <- (bind_rows(stochf, detf)
 
 ## Takes in the simulated stochastic simulations and plot it
 
-alpha <- max(1/nsims,0.075)
+alpha <- max((1/nsims)^(2/3),0.05)
 ## over <- 10
 ## alpha <- something about the number of simulatiosn
 
-simdat <- incdf 
+simdat <- (incdf |> mutate(matrix = ifelse(matrix == "incidence_red", "Red","Blue")
+           , matrix = factor(matrix,levels=c("Red","Blue"))
+          )
+)
 
-gg <- (ggplot(simdat|>filter(iter!=0), aes(time,value,group=interaction(iter,matrix),color=matrix))
-	+ scale_color_manual(values=c("blue","red"))
+gg <- (ggplot(simdat|>filter(iter!="0"), aes(time,value,group=interaction(iter,matrix),color=matrix))
+	+ scale_color_manual(values=c("red","blue"))
 	+ theme(legend.position = "none")
 	+ ylab("")
 	+ xlab("Days")
@@ -79,9 +84,49 @@ if(input$det[1]){
   gg <- gg  + geom_line(data=simdat |> filter(iter==0))
 }
 
-print(gg)
+# print(gg)
+
+fsdf <- (simdat 
+  |> filter(iter != "0")
+  |> group_by(iter,matrix)
+  |> summarise(fs=sum(value))
+)
+
+gghist <- (ggplot(fsdf, aes(fs))
+      + geom_histogram(position = "identity")
+      + facet_wrap(~matrix,nrow=1,scale="free")
+      + xlab("Final size")
+)
+
+fsdf2 <- (fsdf
+  |> ungroup()
+  |> group_by(matrix)
+  |> mutate(maxfs = max(fs))
+  |> ungroup()
+)
+
+probdat <- (expand.grid(Infections = 0:max(fsdf$fs))
+  |> group_by(Infections)
+  |> mutate(Red = mean(Infections>=filter(fsdf2,matrix=="Red")|>pull(fs))
+    , Blue = mean(Infections>=filter(fsdf2,matrix=="Blue")|>pull(fs)) 
+    )
+  |> pivot_longer(-Infections,names_to="matrix",values_to = "Probability")
+  |> mutate(matrix = factor(matrix,levels=c("Red","Blue")))
+)
+
+ggprob <- (ggplot(probdat, aes(Infections,Probability))
+           + geom_line()
+           + facet_wrap(~matrix,nrow=1)
+           + xlab("Infections")
+           + ylab("Probability")
+           + ylim(c(0,1))
+)
 
 
+
+comboplot <- plot_grid(gg,gghist,ggprob,nrow=3)
+
+print(comboplot)
 
    })
 }

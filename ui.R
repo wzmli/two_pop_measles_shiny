@@ -1,6 +1,6 @@
 library(shiny)
 library(ggplot2) # load ggplot
-theme_set(theme_bw())
+theme_set(theme_bw(base_size=20))
 library(dplyr)
 library(macpan2)
 
@@ -77,7 +77,7 @@ fluidPage(
 		  )
 		)
 	, mainPanel(
-         plotOutput("incplot")
+         plotOutput("incplot",height = 950)
 
 		
       )
