@@ -7,7 +7,7 @@ library(macpan2)
 # Define UI for application that draws a histogram
 fluidPage(
 	# Application title
-	titlePanel("Two population Incidence"),
+	titlePanel("Two population Measles Model"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(

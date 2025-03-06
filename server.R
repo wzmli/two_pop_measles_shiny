@@ -75,6 +75,7 @@ gg <- (ggplot(simdat|>filter(iter!="0"), aes(time,value,group=interaction(iter,m
 	+ theme(legend.position = "none")
 	+ ylab("")
 	+ xlab("Days")
+	+ ggtitle("Incidence")
 )
 
 if(input$stoch[1]){
