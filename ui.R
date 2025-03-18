@@ -42,11 +42,24 @@ fluidPage(
 		               , value = 1000 
 		  )
 		  ,
+		  sliderInput("Rzero"
+		              ,"Reproduction Number"
+		              , min = 0
+		              , max = 18
+		              , value=12
+		  )
+		  ,
 		  sliderInput("pref"
 		    ,"Within Group Mixing"
 		    , min = 0
 		    , max = 1
 		    , value=0.99
+		  ),
+		  sliderInput("eff"
+		              ,"Vaccine Effectiveness"
+		              , min = 0
+		              , max = 1
+		              , value=0.95
 		  )
 		  ,
       	sliderInput("vaxprop_red"

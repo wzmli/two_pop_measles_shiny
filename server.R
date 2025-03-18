@@ -15,6 +15,8 @@ function(input, output) {
 		  pop_red = input$pop_red[1]
 		  , pop_blue = input$pop_blue[1]
 		  , pref = input$pref[1]
+		  , eff = input$eff[1]
+		  , beta = input$Rzero[1]*defaultSpecs$default[["gamma"]]
 		  , vaxprop_red = input$vaxprop_red[1]
 		  , vaxprop_blue = input$vaxprop_blue[1]
 		  , iso_red = input$iso_red[1]
@@ -93,8 +95,17 @@ fsdf <- (simdat
   |> summarise(fs=sum(value))
 )
 
-gghist <- (ggplot(fsdf, aes(fs))
-      + geom_histogram(position = "identity")
+
+countdf <- (fsdf
+         |> ungroup()
+         |> group_by(matrix,fs)
+         |> summarise(count = n())
+)
+
+
+gghist <- (ggplot(countdf, aes(fs,count))
+#      + geom_histogram(position = "identity")
+		+ geom_point()
       + facet_wrap(~matrix,nrow=1,scale="free")
       + xlab("Final size")
 )

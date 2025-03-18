@@ -49,6 +49,13 @@ ui <- fluidPage(
 		    , value=0.99
 		  )
 		  ,
+		  sliderInput("pref"
+		              ,"Within Group Mixing"
+		              , min = 0
+		              , max = 1
+		              , value=0.99
+		  )
+		  ,
       	sliderInput("vaxprop_red"
          	,"Vaccine Coverage of RED"
       		, min = 0
