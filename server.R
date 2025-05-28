@@ -55,12 +55,8 @@ function(input, output) {
       nsims <- input$nsims[1]
       time_steps = input$time_steps[1]
       
-      stochf = mp_trajectory_replicate(simulators$seir_stoch
-                                       , n = 10
-                                       , parameter_updates = newparams
-      )
       detf = (simulators$seir_det
-              |> mp_trajectory()
+              |> mp_trajectory_par(parameter_updates = newparams)
               |> mutate(NULL, iter = "0")
       )
       stochf = (simulators$seir_stoch
