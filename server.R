@@ -24,9 +24,10 @@ get_newparams = function(input) {
 function(input, output) {
   simulators <- reactiveValues(seir_det = NULL, seir_stoch = NULL)
   observeEvent(list(input$time_steps), {
-    message("Recomputing simulators ...")
+    message("Generating simulators ...")
     start = Sys.time()
     newparams <- get_newparams(input)
+    for (p in names(newparams)) message(sprintf("%s: %s", p, newparams[[p]]))
     spec <- mp_read_rds("specs.rds") |> mp_tmb_update(default = newparams)
     outputs <- c("incidence_red", "incidence_blue")
     simulators$seir_det <- mp_tmb_calibrator(spec
@@ -47,6 +48,7 @@ function(input, output) {
     message("Generating simulations ...")
     start = Sys.time()
     newparams <- get_newparams(input)
+    for (p in names(newparams)) message(sprintf("%s: %s", p, newparams[[p]]))
     nsims <- input$nsims[1]
     time_steps = input$time_steps[1]
     
@@ -59,7 +61,7 @@ function(input, output) {
       |> mutate(NULL, iter = "0")
     )
     stochf = (simulators$seir_stoch
-      |> mp_trajectory_replicate(n = nsims)
+      |> mp_trajectory_replicate(n = nsims, parameter_updates = newparams)
       |> bind_rows(.id = "iter")
     )
     incdf <- bind_rows(stochf, detf)
