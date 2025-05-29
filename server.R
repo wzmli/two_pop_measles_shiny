@@ -25,7 +25,7 @@ function(input, output) {
   
   simulators <- reactiveValues(seir_det = NULL, seir_stoch = NULL)
   observeEvent(list(input$time_steps), {
-    withProgress(message = 'Generating simulators ...', value = 0, style = "old", {
+    withProgress(message = 'Loading and preparing model ...', value = 0, style = "old", {
       start = Sys.time()
       newparams <- get_newparams(input)
       for (p in names(newparams)) message(sprintf("%s: %s", p, newparams[[p]]))
@@ -33,17 +33,19 @@ function(input, output) {
       spec <- read_fn("specs.rds") |> mp_tmb_update(default = newparams)
       outputs <- c("incidence_red", "incidence_blue")
       simulators$seir_det <- mp_tmb_calibrator(spec
-                                               , time = mp_sim_bounds(1, input$time_steps, "steps")
-                                               , par = names(newparams)
-                                               , outputs = outputs
+         , time = mp_sim_bounds(1, input$time_steps, "steps")
+         , par = names(newparams)
+         , outputs = outputs
       )
       simulators$seir_stoch <- mp_tmb_calibrator(mp_euler_multinomial(spec)
-                                                 , time = mp_sim_bounds(1, input$time_steps, "steps")
-                                                 , par = names(newparams)
-                                                 , outputs = outputs
+         , time = mp_sim_bounds(1, input$time_steps, "steps")
+         , par = names(newparams)
+         , outputs = outputs
       )
+      trash = mp_trajectory(simulators$seir_det)
+      trash = mp_trajectory(simulators$seir_stoch)
       end = Sys.time()
-      showNotification(sprintf("Took %.2f seconds to generate simulators", end - start))
+      showNotification(sprintf("Took %.2f seconds to load and prepare model", end - start))
     })
   })
   
