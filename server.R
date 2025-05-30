@@ -6,7 +6,7 @@ library(tidyr)
 library(macpan2)
 library(cowplot)
 
-get_newparams = function(input) {
+get_newparams = function(input, spec) {
   list(
     pop_red = input$pop_red[1]
     , pop_blue = input$pop_blue[1]
@@ -23,27 +23,28 @@ get_newparams = function(input) {
 # Define server logic required to draw a histogram
 function(input, output) {
   
-  simulators <- reactiveValues(seir_det = NULL, seir_stoch = NULL)
+  models <- reactiveValues(seir_det_simulator = NULL, seir_stoch_simulator = NULL, seir_spec = NULL)
   observeEvent(list(input$time_steps), {
     withProgress(message = 'Loading and preparing model ...', value = 0, style = "old", {
       start = Sys.time()
-      newparams <- get_newparams(input)
-      for (p in names(newparams)) message(sprintf("%s: %s", p, newparams[[p]]))
+      
       read_fn = if (packageVersion("macpan2") >= "2.2.1") mp_read_rds else readRDS
-      spec <- read_fn("specs.rds") |> mp_tmb_update(default = newparams)
+      spec <- read_fn("specs.rds")
+      newparams <- get_newparams(input, spec)
+      models$seir_spec = mp_tmb_update(spec, default = newparams)
       outputs <- c("incidence_red", "incidence_blue")
-      simulators$seir_det <- mp_tmb_calibrator(spec
+      models$seir_det_simulator <- mp_tmb_calibrator(models$seir_spec
          , time = mp_sim_bounds(1, input$time_steps, "steps")
          , par = names(newparams)
          , outputs = outputs
       )
-      simulators$seir_stoch <- mp_tmb_calibrator(mp_euler_multinomial(spec)
+      models$seir_stoch_simulator <- mp_tmb_calibrator(mp_euler_multinomial(models$seir_spec)
          , time = mp_sim_bounds(1, input$time_steps, "steps")
          , par = names(newparams)
          , outputs = outputs
       )
-      trash = mp_trajectory(simulators$seir_det)
-      trash = mp_trajectory(simulators$seir_stoch)
+      trash = mp_trajectory(models$seir_det_simulator)
+      trash = mp_trajectory(models$seir_stoch_simulator)
       end = Sys.time()
       showNotification(sprintf("Took %.2f seconds to load and prepare model", end - start))
     })
@@ -52,16 +53,16 @@ function(input, output) {
   output$incplot <- renderPlot({
     withProgress(message = 'Generating simulations ...', value = 0, style = "old", {
       start = Sys.time()
-      newparams <- get_newparams(input)
-      for (p in names(newparams)) message(sprintf("%s: %s", p, newparams[[p]]))
+      newparams <- get_newparams(input, models$seir_spec)
+      
       nsims <- input$nsims[1]
       time_steps = input$time_steps[1]
       
-      detf = (simulators$seir_det
+      detf = (models$seir_det_simulator
               |> mp_trajectory_par(parameter_updates = newparams)
               |> mutate(NULL, iter = "0")
       )
-      stochf = (simulators$seir_stoch
+      stochf = (models$seir_stoch_simulator
                 |> mp_trajectory_replicate(n = nsims, parameter_updates = newparams)
                 |> bind_rows(.id = "iter")
       )
