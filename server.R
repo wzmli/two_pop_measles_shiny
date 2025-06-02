@@ -17,14 +17,17 @@ get_newparams = function(input, spec) {
     , vaxprop_blue = input$vaxprop_blue[1]
     , iso_red = input$iso_red[1]
     , iso_blue = input$iso_blue[1]
+    , A0 = input$A0[1]*input$pop_red[1]
   )
 }
 
 # Define server logic required to draw a histogram
 function(input, output) {
   
-  models <- reactiveValues(seir_det_simulator = NULL, seir_stoch_simulator = NULL, seir_spec = NULL)
-  observeEvent(list(input$time_steps), {
+  models <- reactiveValues(seir_det_simulator = NULL, seir_stoch_simulator = NULL, seir_spec = NULL, incplot=NULL, histplot = NULL, )
+#  observeEvent(list(input$time_steps), {
+  time_steps = 365 #input$time_steps[1]
+    observeEvent(list(time_steps), {
     withProgress(message = 'Loading and preparing model ...', value = 0, style = "old", {
       start = Sys.time()
       
@@ -33,19 +36,41 @@ function(input, output) {
       newparams <- get_newparams(input, spec)
       models$seir_spec = mp_tmb_update(spec, default = newparams)
       outputs <- c("incidence_red", "incidence_blue")
-      models$seir_det_simulator <- mp_tmb_calibrator(models$seir_spec
-         , time = mp_sim_bounds(1, input$time_steps, "steps")
+      time_steps = 365 #input$time_steps[1]
+      models$seir_det_simulator <- mp_tmb_calibrator(mp_rk4(models$seir_spec)
+#         , time = mp_sim_bounds(1, input$time_steps, "steps")
+         , time = mp_sim_bounds(1, time_steps, "steps")
          , par = names(newparams)
          , outputs = outputs
       )
       models$seir_stoch_simulator <- mp_tmb_calibrator(mp_euler_multinomial(models$seir_spec)
-         , time = mp_sim_bounds(1, input$time_steps, "steps")
+#         , time = mp_sim_bounds(1, input$time_steps, "steps")
+         , time = mp_sim_bounds(1, time_steps, "steps")
          , par = names(newparams)
          , outputs = outputs
       )
+      dummy_df <- data.frame(matrix=NA,time=NA,iter=NA,value=NA,fs=NA,count=NA)
+      
+      models$incplot <- (ggplot(dummy_df, aes(time, value, group = interaction(iter, matrix), color = matrix))
+             + scale_color_manual(values = c("red", "blue"))
+             + theme(legend.position = "none")
+             + ylab("")
+             + xlab("Days")
+             + ggtitle("Incidence")
+      )
+      
+      ## countdf
+      models$histplot <- (ggplot(dummy_df, aes(fs,count))
+                 #      + geom_histogram(position = "identity")
+                 + geom_point()
+                 + facet_wrap(~matrix,nrow=1,scale="free")
+                 + xlab("Final size")
+      )
+      
       trash = mp_trajectory(models$seir_det_simulator)
       trash = mp_trajectory(models$seir_stoch_simulator)
       end = Sys.time()
+      
       showNotification(sprintf("Took %.2f seconds to load and prepare model", end - start))
     })
   })
@@ -56,7 +81,7 @@ function(input, output) {
       newparams <- get_newparams(input, models$seir_spec)
       
       nsims <- input$nsims[1]
-      time_steps = input$time_steps[1]
+      time_steps = 365 #input$time_steps[1]
       
       detf = (models$seir_det_simulator
               |> mp_trajectory_par(parameter_updates = newparams)
@@ -77,6 +102,8 @@ function(input, output) {
       ## over <- 10
       ## alpha <- something about the number of simulations
       
+      dummy_df <- data.frame(matrix=NA,time=NA,iter=NA,value=NA,fs=NA,count=NA)
+      
       simdat <- (incdf 
                  |> mutate(
                    matrix = ifelse(matrix == "incidence_red", "Red","Blue")
@@ -84,20 +111,9 @@ function(input, output) {
                  )
       )
       
-      gg <- (simdat
-             |> filter(iter != "0")
-             |> ggplot(
-               aes(time, value, group = interaction(iter, matrix), color = matrix)
-             )
-             + scale_color_manual(values = c("red", "blue"))
-             + theme(legend.position = "none")
-             + ylab("")
-             + xlab("Days")
-             + ggtitle("Incidence")
-      )
-      
+      gg <- models$incplot
       if(input$stoch[1]){
-        gg <- gg + geom_line(alpha=alpha)
+        gg <- gg + geom_line(data=(simdat|> filter(iter != "0")),alpha=alpha)
       }
       if(input$det[1]){
         gg <- gg  + geom_line(data=simdat |> filter(iter==0))
@@ -119,40 +135,35 @@ function(input, output) {
       )
       
       
-      gghist <- (ggplot(countdf, aes(fs,count))
-                 #      + geom_histogram(position = "identity")
-                 + geom_point()
-                 + facet_wrap(~matrix,nrow=1,scale="free")
-                 + xlab("Final size")
-      )
+      gghist <- (models$histplot %+% countdf)
       
-      fsdf2 <- (fsdf
-                |> ungroup()
-                |> group_by(matrix)
-                |> mutate(maxfs = max(fs))
-                |> ungroup()
-      )
+#      fsdf2 <- (fsdf
+#                |> ungroup()
+#                |> group_by(matrix)
+#                |> mutate(maxfs = max(fs))
+#                |> ungroup()
+#      )
       
-      probdat <- (expand.grid(Infections = 0:max(fsdf$fs))
-                  |> group_by(Infections)
-                  |> mutate(Red = mean(Infections>=filter(fsdf2,matrix=="Red")|>pull(fs))
-                            , Blue = mean(Infections>=filter(fsdf2,matrix=="Blue")|>pull(fs)) 
-                  )
-                  |> pivot_longer(-Infections,names_to="matrix",values_to = "Probability")
-                  |> mutate(matrix = factor(matrix,levels=c("Red","Blue")))
-      )
+#      probdat <- (expand.grid(Infections = 0:max(fsdf$fs))
+#                  |> group_by(Infections)
+#                  |> mutate(Red = mean(Infections>=filter(fsdf2,matrix=="Red")|>pull(fs))
+#                            , Blue = mean(Infections>=filter(fsdf2,matrix=="Blue")|>pull(fs)) 
+#                  )
+#                  |> pivot_longer(-Infections,names_to="matrix",values_to = "Probability")
+#                  |> mutate(matrix = factor(matrix,levels=c("Red","Blue")))
+#      )
       
-      ggprob <- (ggplot(probdat, aes(Infections, Probability))
-                 + geom_line()
-                 + facet_wrap(~matrix, nrow = 1)
-                 + xlab("Infections")
-                 + ylab("Probability")
-                 + ylim(c(0,1))
-      )
+#      ggprob <- (ggplot(probdat, aes(Infections, Probability))
+#                 + geom_line()
+#                 + facet_wrap(~matrix, nrow = 1)
+#                 + xlab("Infections")
+#                 + ylab("Probability")
+#                 + ylim(c(0,1))
+#      )
       
       
       
-      comboplot <- plot_grid(gg, gghist, ggprob, nrow = 3)
+      comboplot <- plot_grid(gg, gghist, nrow = 2)
       
       print(comboplot)
       end = Sys.time()

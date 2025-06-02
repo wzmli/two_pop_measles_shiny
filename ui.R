@@ -3,7 +3,6 @@ library(ggplot2) # load ggplot
 theme_set(theme_bw(base_size=20))
 library(dplyr)
 library(macpan2)
-library(shinycssloaders)
 
 # Define UI for application that draws a histogram
 fluidPage(
@@ -27,11 +26,6 @@ fluidPage(
 		    , "Number of Simulations" 
 		    , value = 10 
 		    )
-		    ,
-		  numericInput("time_steps"
-		    , "Days" 
-		    , value = 365 
-		    )
 		  ,
 		  numericInput("pop_red"
 		               , "Pop Red" 
@@ -48,6 +42,13 @@ fluidPage(
 		              , min = 0
 		              , max = 18
 		              , value=12
+		  )
+		  ,
+		  sliderInput("A0"
+		              ,"Awareness"
+		              , min = 0.001
+		              , max = 0.2
+		              , value=0.1
 		  )
 		  ,
 		  sliderInput("pref"
@@ -91,7 +92,10 @@ fluidPage(
 		  )
 		)
 	, mainPanel(
-         plotOutput("incplot",height = 950) |> withSpinner(color="#2E5090")
+         plotOutput("incplot",height = 950)
+
+		
       )
    )
 )
+
