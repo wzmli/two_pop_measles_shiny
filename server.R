@@ -17,6 +17,8 @@ get_newparams = function(input, spec) {
     , vaxprop_blue = input$vaxprop_blue[1]
     , iso_red = input$iso_red[1]
     , iso_blue = input$iso_blue[1]
+    , import_prob_red = input$import_prob_red[1]
+    , import_prob_blue = input$import_prob_blue[1]
     , A0 = input$A0[1]*input$pop_red[1]
   )
 }

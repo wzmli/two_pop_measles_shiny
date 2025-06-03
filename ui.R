@@ -29,13 +29,15 @@ fluidPage(
           h3("Red Controls"),
           numericInput("pop_red", "Pop Red", value = 1000),
           sliderInput("vaxprop_red", "Vaccine Coverage of RED", min = 0, max = 1, value = 0.5),
-          sliderInput("iso_red", "Infection Isolation of RED", min = 0, max = 1, value = 0.5)
+          sliderInput("iso_red", "Infection Isolation of RED", min = 0, max = 1, value = 0.5),
+          sliderInput("import_prob_red", "Importation to RED", min = 0, max = 1, value = 0.01)
         ),
         column(6,
           h3("Blue Controls"),
           numericInput("pop_blue", "Pop Blue", value = 1000),
           sliderInput("vaxprop_blue", "Vaccine Coverage of BLUE", min = 0, max = 1, value = 0.5),
-          sliderInput("iso_blue", "Infection Isolation of BLUE", min = 0, max = 1, value = 0.5)
+          sliderInput("iso_blue", "Infection Isolation of BLUE", min = 0, max = 1, value = 0.5),
+          sliderInput("import_prob_blue", "Importation to BLUE", min = 0, max = 1, value = 0.01)
         )
       )
     ),
